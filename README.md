@@ -4,8 +4,12 @@ A complete, production-ready Full Stack Agentic AI application that combines mod
 
 ## Live Demo
 
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000/api
+- **Frontend**: https://voyage-ai-sand.vercel.app
+- **Backend API**: https://voyageai-server-wvw9.onrender.com/api
+
+## Repository
+
+- **GitHub**: https://github.com/meheroon/-voyage-ai
 
 ## Demo Credentials
 
