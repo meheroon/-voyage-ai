@@ -3,10 +3,12 @@ import OpenAI from "openai";
 let openai: OpenAI;
 
 function getOpenAI(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || apiKey === "sk-placeholder") {
+    throw new Error("OpenAI API key is not configured. Set the OPENAI_API_KEY environment variable.");
+  }
   if (!openai) {
-    openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || "sk-placeholder",
-    });
+    openai = new OpenAI({ apiKey });
   }
   return openai;
 }

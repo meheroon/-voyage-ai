@@ -4,22 +4,26 @@ import { useState, useEffect } from "react";
 import { aiAPI } from "@/lib/api";
 import ReactMarkdown from "react-markdown";
 import toast from "react-hot-toast";
-import { Target, Loader2, RefreshCw } from "lucide-react";
+import { Target, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 
 export default function AIRecommendationsPage() {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [basedOn, setBasedOn] = useState<any>(null);
+  const [apiError, setApiError] = useState("");
 
   const fetchRecommendations = async () => {
     setLoading(true);
+    setApiError("");
     try {
       const res = await aiAPI.getRecommendations();
       setResult(res.data.data.recommendations);
       setBasedOn(res.data.data.basedOn);
       toast.success("Recommendations generated!");
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to get recommendations");
+      const msg = err.response?.data?.message || "Failed to get recommendations";
+      setApiError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -68,6 +72,13 @@ export default function AIRecommendationsPage() {
               <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary-500" />
               <p className="text-navy-500">Analyzing your preferences...</p>
             </div>
+          </div>
+        ) : apiError ? (
+          <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-center">
+            <AlertTriangle className="mb-4 h-12 w-12 text-amber-400" />
+            <p className="mb-2 font-medium text-navy-700">AI Features Unavailable</p>
+            <p className="max-w-md text-sm text-navy-500">{apiError}</p>
+            <p className="mt-4 text-xs text-navy-400">The server administrator needs to configure the OpenAI API key.</p>
           </div>
         ) : result ? (
           <div className="prose max-w-none">
