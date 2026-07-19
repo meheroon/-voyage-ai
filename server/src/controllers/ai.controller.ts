@@ -6,6 +6,7 @@ import {
   analyzeTravelData,
   generateDestinationDescription,
 } from "../services/ai.service";
+import { handleOpenAIError } from "../utils/openai-error";
 import Itinerary from "../models/Itinerary";
 import User from "../models/User";
 import Destination from "../models/Destination";
@@ -50,6 +51,7 @@ export const createItinerary = async (req: AuthRequest, res: Response): Promise<
       },
     });
   } catch (error: any) {
+    if (handleOpenAIError(error, res)) return;
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -67,6 +69,7 @@ export const generateTripContent = async (req: AuthRequest, res: Response): Prom
 
     res.json({ success: true, data: { content, meta: { type, topic, length, tone } } });
   } catch (error: any) {
+    if (handleOpenAIError(error, res)) return;
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -85,6 +88,7 @@ export const getAIRecommendations = async (req: AuthRequest, res: Response): Pro
 
     res.json({ success: true, data: { recommendations, basedOn: { preferences: user?.preferences } } });
   } catch (error: any) {
+    if (handleOpenAIError(error, res)) return;
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -102,6 +106,7 @@ export const analyzeData = async (req: AuthRequest, res: Response): Promise<void
 
     res.json({ success: true, data: { analysis } });
   } catch (error: any) {
+    if (handleOpenAIError(error, res)) return;
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -119,6 +124,7 @@ export const generateAIDescription = async (req: AuthRequest, res: Response): Pr
 
     res.json({ success: true, data: description });
   } catch (error: any) {
+    if (handleOpenAIError(error, res)) return;
     res.status(500).json({ success: false, message: error.message });
   }
 };

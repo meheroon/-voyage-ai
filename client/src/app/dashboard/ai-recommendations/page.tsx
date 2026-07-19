@@ -78,7 +78,6 @@ export default function AIRecommendationsPage() {
             <AlertTriangle className="mb-4 h-12 w-12 text-amber-400" />
             <p className="mb-2 font-medium text-navy-700">AI Features Unavailable</p>
             <p className="max-w-md text-sm text-navy-500">{apiError}</p>
-            <p className="mt-4 text-xs text-navy-400">The server administrator needs to configure the OpenAI API key.</p>
           </div>
         ) : result ? (
           <div className="prose max-w-none">
