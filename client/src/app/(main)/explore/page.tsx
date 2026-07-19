@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -20,7 +20,7 @@ const sortOptions = [
   { value: "-reviewCount", label: "Most Reviewed" },
 ];
 
-export default function ExplorePage() {
+function ExploreContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -244,5 +244,34 @@ export default function ExplorePage() {
       </div>
       <Footer />
     </div>
+  );
+}
+
+export default function ExplorePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-navy-50">
+          <Navbar />
+          <div className="pt-20 pb-16">
+            <div className="bg-gradient-to-r from-navy-900 to-primary-900 px-4 py-12 sm:px-6 lg:px-8">
+              <div className="container-custom mx-auto">
+                <div className="mb-3 h-10 w-64 animate-pulse rounded bg-white/20" />
+                <div className="mb-6 h-5 w-96 animate-pulse rounded bg-white/10" />
+              </div>
+            </div>
+            <div className="container-custom mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="grid gap-6 pt-8 sm:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <ExploreContent />
+    </Suspense>
   );
 }
