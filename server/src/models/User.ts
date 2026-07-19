@@ -13,6 +13,8 @@ export interface IUserDocument extends Document {
     travelStyle: string;
     interests: string[];
   };
+  createdAt: Date;
+  updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 

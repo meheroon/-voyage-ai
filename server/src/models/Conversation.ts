@@ -9,6 +9,8 @@ export interface IConversationDocument extends Document {
     timestamp: Date;
   }[];
   isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const conversationSchema = new Schema<IConversationDocument>(
