@@ -1,39 +1,9 @@
 import { Response } from "express";
 
-interface OpenAIError extends Error {
-  status?: number;
-  code?: string;
-  error?: { message?: string; type?: string; code?: string };
-}
+export function handleAIError(error: any, res: Response): boolean {
+  const message = error?.message || String(error);
 
-function isOpenAIError(error: any): error is OpenAIError {
-  return error?.status !== undefined || error?.code !== undefined || error?.error?.type !== undefined;
-}
-
-export function handleOpenAIError(error: any, res: Response): boolean {
-  if (!isOpenAIError(error)) return false;
-
-  const status = error.status || 500;
-  const message = error.error?.message || error.message;
-  const type = error.error?.type;
-
-  if (status === 429) {
-    res.status(503).json({
-      success: false,
-      message: "AI service is temporarily unavailable due to rate limits. Please try again later.",
-    });
-    return true;
-  }
-
-  if (status === 402) {
-    res.status(503).json({
-      success: false,
-      message: "AI service billing quota has been exceeded. Please contact the administrator.",
-    });
-    return true;
-  }
-
-  if (status === 401) {
+  if (message.includes("API key") || message.includes("GEMINI_API_KEY")) {
     res.status(503).json({
       success: false,
       message: "AI service authentication failed. Please contact the administrator.",
@@ -41,17 +11,21 @@ export function handleOpenAIError(error: any, res: Response): boolean {
     return true;
   }
 
-  if (type === "insufficient_quota") {
+  if (message.includes("429") || message.includes("rate") || message.includes("RESOURCE_EXHAUSTED")) {
     res.status(503).json({
       success: false,
-      message: "AI service quota has been exhausted. Please contact the administrator to add billing credits.",
+      message: "AI service is temporarily unavailable due to rate limits. Please try again later.",
     });
     return true;
   }
 
-  res.status(503).json({
-    success: false,
-    message: "AI service encountered an error. Please try again later.",
-  });
-  return true;
+  if (message.includes("quota") || message.includes("billing") || message.includes("PAYMENT")) {
+    res.status(503).json({
+      success: false,
+      message: "AI service quota has been exhausted. Please contact the administrator.",
+    });
+    return true;
+  }
+
+  return false;
 }

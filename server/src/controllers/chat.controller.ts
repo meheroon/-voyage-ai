@@ -1,7 +1,7 @@
 import { Response } from "express";
 import Conversation from "../models/Conversation";
 import { chatWithAI } from "../services/ai.service";
-import { handleOpenAIError } from "../utils/openai-error";
+import { handleAIError } from "../utils/openai-error";
 import { AuthRequest } from "../types";
 
 export const getConversations = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -106,7 +106,7 @@ export const sendMessage = async (req: AuthRequest, res: Response): Promise<void
       },
     });
   } catch (error: any) {
-    if (handleOpenAIError(error, res)) return;
+    if (handleAIError(error, res)) return;
     res.status(500).json({ success: false, message: error.message });
   }
 };

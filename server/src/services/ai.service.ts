@@ -1,19 +1,29 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 
-let openai: OpenAI;
+let model: GenerativeModel;
 
-function getOpenAI(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey || apiKey === "sk-placeholder") {
-    throw new Error("OpenAI API key is not configured. Set the OPENAI_API_KEY environment variable.");
+function getModel(): GenerativeModel {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Gemini API key is not configured. Set the GEMINI_API_KEY environment variable.");
   }
-  if (!openai) {
-    openai = new OpenAI({ apiKey });
+  if (!model) {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   }
-  return openai;
+  return model;
 }
 
 const SYSTEM_PROMPT = `You are VoyageAI, an expert AI travel assistant. You help users plan trips, discover destinations, create itineraries, and provide travel advice. You are knowledgeable about world destinations, cultures, cuisines, budgets, and travel tips. Be friendly, helpful, and provide detailed, actionable advice. Use emojis sparingly to make responses engaging.`;
+
+async function generate(systemPrompt: string, userPrompt: string): Promise<string> {
+  const m = getModel();
+  const result = await m.generateContent([
+    { text: systemPrompt },
+    { text: userPrompt },
+  });
+  return result.response.text() || "I'm sorry, I couldn't generate a response.";
+}
 
 export const chatWithAI = async (
   messages: { role: "user" | "assistant" | "system"; content: string }[],
@@ -23,22 +33,16 @@ export const chatWithAI = async (
     ? `${SYSTEM_PROMPT}\n\nAdditional context: ${context}`
     : SYSTEM_PROMPT;
 
-  const formattedMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system", content: systemMessage },
-    ...messages.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    })),
-  ];
+  const m = getModel();
+  const history = messages.map((m) => ({
+    role: m.role === "assistant" ? "model" as const : "user" as const,
+    parts: [{ text: m.content }],
+  }));
 
-  const response = await getOpenAI().chat.completions.create({
-    model: "gpt-4o",
-    messages: formattedMessages,
-    max_tokens: 2000,
-    temperature: 0.7,
-  });
-
-  return response.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+  const chat = m.startChat({ history: [{ role: "user", parts: [{ text: systemMessage }] }, { role: "model", parts: [{ text: "Understood. I'm VoyageAI, ready to help with travel planning." }] }, ...history] });
+  const lastMessage = messages[messages.length - 1];
+  const result = await chat.sendMessage(lastMessage.content);
+  return result.response.text() || "I'm sorry, I couldn't generate a response.";
 };
 
 export const generateItinerary = async (
@@ -65,17 +69,7 @@ For each day, provide:
 
 Make the itinerary practical, well-paced, and include a mix of popular attractions and hidden gems. Format the response in clear markdown with headers for each day.`;
 
-  const response = await getOpenAI().chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: prompt },
-    ],
-    max_tokens: 4000,
-    temperature: 0.7,
-  });
-
-  return response.choices[0]?.message?.content || "Could not generate itinerary.";
+  return generate(SYSTEM_PROMPT, prompt);
 };
 
 export const generateContent = async (
@@ -94,17 +88,7 @@ Requirements:
 
 Format the response in clean markdown.`;
 
-  const response = await getOpenAI().chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: prompt },
-    ],
-    max_tokens: length === "short" ? 1000 : length === "medium" ? 2500 : 4000,
-    temperature: 0.8,
-  });
-
-  return response.choices[0]?.message?.content || "Could not generate content.";
+  return generate(SYSTEM_PROMPT, prompt);
 };
 
 export const getRecommendations = async (
@@ -130,17 +114,7 @@ For each recommendation, provide:
 
 Format as a numbered list with clear sections for each destination.`;
 
-  const response = await getOpenAI().chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: prompt },
-    ],
-    max_tokens: 3000,
-    temperature: 0.7,
-  });
-
-  return response.choices[0]?.message?.content || "Could not generate recommendations.";
+  return generate(SYSTEM_PROMPT, prompt);
 };
 
 export const analyzeTravelData = async (data: string): Promise<string> => {
@@ -158,17 +132,7 @@ Please provide:
 
 Format as a clear analytical report with sections and bullet points.`;
 
-  const response = await getOpenAI().chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      { role: "system", content: "You are a travel data analyst AI. Provide clear, data-driven insights." },
-      { role: "user", content: prompt },
-    ],
-    max_tokens: 3000,
-    temperature: 0.5,
-  });
-
-  return response.choices[0]?.message?.content || "Could not analyze data.";
+  return generate("You are a travel data analyst AI. Provide clear, data-driven insights.", prompt);
 };
 
 export const generateDestinationDescription = async (
@@ -190,17 +154,7 @@ Provide:
 Return the response in this exact JSON format:
 {"description": "your detailed description here", "shortDescription": "your short description here"}`;
 
-  const response = await getOpenAI().chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      { role: "system", content: "You are a travel content writer. Generate compelling destination descriptions." },
-      { role: "user", content: prompt },
-    ],
-    max_tokens: 1500,
-    temperature: 0.8,
-  });
-
-  const content = response.choices[0]?.message?.content || '{"description": "", "shortDescription": ""}';
+  const content = await generate("You are a travel content writer. Generate compelling destination descriptions.", prompt);
 
   try {
     const jsonMatch = content.match(/\{[\s\S]*\}/);
