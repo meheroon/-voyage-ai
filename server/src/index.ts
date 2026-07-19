@@ -2,12 +2,44 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db";
+import User from "./models/User";
 import authRoutes from "./routes/auth.routes";
 import destinationRoutes from "./routes/destination.routes";
 import chatRoutes from "./routes/chat.routes";
 import aiRoutes from "./routes/ai.routes";
 
 dotenv.config();
+
+const ensureDemoUsers = async () => {
+  const demoAccounts = [
+    {
+      email: "demo@voyageai.com",
+      name: "Demo Traveler",
+      password: "demo123",
+      role: "user" as const,
+      preferences: {
+        budget: "moderate",
+        travelStyle: "adventure",
+        interests: ["culture", "nature", "food"],
+      },
+    },
+    {
+      email: "admin@voyageai.com",
+      name: "VoyageAI Admin",
+      password: "admin123",
+      role: "admin" as const,
+      avatar: "",
+    },
+  ];
+
+  for (const acct of demoAccounts) {
+    const existing = await User.findOne({ email: acct.email });
+    if (!existing) {
+      await User.create(acct);
+      console.log(`Auto-seeded ${acct.role} user: ${acct.email}`);
+    }
+  }
+};
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -55,6 +87,7 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 // Start server
 const start = async () => {
   await connectDB();
+  await ensureDemoUsers();
   app.listen(PORT, () => {
     console.log(`VoyageAI Server running on port ${PORT}`);
   });
