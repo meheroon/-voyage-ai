@@ -10,7 +10,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  googleLogin: (name: string, email: string, avatar: string) => Promise<void>;
+  googleLogin: (credential: string) => Promise<void>;
   logout: () => void;
   updateUser: (user: User) => void;
 }
@@ -53,8 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(userData);
   };
 
-  const googleLogin = async (name: string, email: string, avatar: string) => {
-    const res = await authAPI.googleLogin({ name, email, avatar, googleId: "google_" + email });
+  const googleLogin = async (credential: string) => {
+    const res = await authAPI.googleLogin({ credential });
     const { user: userData, token } = res.data.data;
     localStorage.setItem("voyageai_token", token);
     localStorage.setItem("voyageai_user", JSON.stringify(userData));
