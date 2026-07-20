@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Star, MapPin, Clock, ArrowRight } from "lucide-react";
 import { Destination } from "@/types";
 
@@ -13,16 +12,18 @@ const categoryColors: Record<string, string> = {
   budget: "bg-teal-100 text-teal-700",
 };
 
+const fallbackImage = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800";
+
 export default function DestinationCard({ destination }: { destination: Destination }) {
   return (
     <div className="card group overflow-hidden">
-      <div className="relative aspect-[4/3] overflow-hidden">
-        <Image
-          src={destination.images[0] || "/placeholder.jpg"}
+      <div className="relative aspect-[4/3] overflow-hidden bg-navy-100">
+        <img
+          src={destination.images?.[0] || fallbackImage}
           alt={destination.title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+          onError={(e) => { (e.target as HTMLImageElement).src = fallbackImage; }}
         />
         <div className="absolute left-3 top-3">
           <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${categoryColors[destination.category] || "bg-navy-100 text-navy-700"}`}>

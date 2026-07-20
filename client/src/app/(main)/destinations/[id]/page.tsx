@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -88,13 +87,11 @@ export default function DestinationDetailPage() {
 
           {/* Image Gallery */}
           <div className="mb-8 grid gap-4 lg:grid-cols-3">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl lg:col-span-2">
-              <Image
-                src={destination.images[selectedImage] || destination.images[0]}
-                alt={destination.title}
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 66vw"
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl lg:col-span-2 bg-navy-100">
+              <img
+                src={(destination?.images ?? [])[selectedImage] || (destination?.images ?? [])[0] || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800"}
+                alt={destination?.title || ""}
+                className="h-full w-full object-cover"
               />
             </div>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
@@ -102,9 +99,9 @@ export default function DestinationDetailPage() {
                 <div
                   key={i}
                   onClick={() => setSelectedImage(i + 1)}
-                  className="relative aspect-[16/10] cursor-pointer overflow-hidden rounded-2xl"
+                  className="relative aspect-[16/10] cursor-pointer overflow-hidden rounded-2xl bg-navy-100"
                 >
-                  <Image src={img} alt="" fill className="object-cover" sizes="33vw" />
+                  <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" />
                 </div>
               ))}
             </div>

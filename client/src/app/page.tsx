@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DestinationCard from "@/components/DestinationCard";
@@ -99,8 +98,8 @@ export default function HomePage() {
               </div>
             </div>
             <div className="relative hidden lg:block">
-              <div className="relative h-[480px] w-full rounded-3xl overflow-hidden shadow-2xl">
-                <Image src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800" alt="Tropical Beach" fill className="object-cover" />
+              <div className="relative h-[480px] w-full rounded-3xl overflow-hidden shadow-2xl bg-navy-100">
+                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800" alt="Tropical Beach" className="h-full w-full object-cover" />
               </div>
               <div className="absolute -bottom-6 -left-6 rounded-2xl bg-white p-4 shadow-xl">
                 <div className="flex items-center gap-3">
