@@ -21,6 +21,7 @@ export default function AIChatPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [lastSentMessage, setLastSentMessage] = useState<string>("");
   const messagesEnd = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export default function AIChatPage() {
 
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content: messageText, timestamp: new Date().toISOString() }]);
+    setLastSentMessage(messageText);
     setSending(true);
 
     try {
@@ -83,8 +85,20 @@ export default function AIChatPage() {
         )
       );
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to send message");
-      setMessages((prev) => prev.slice(0, -1));
+      const errorMessage = err.response?.data?.message || "Failed to send message";
+      const isRateLimit = errorMessage.includes("rate") || errorMessage.includes("temporarily unavailable");
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: isRateLimit
+            ? "I'm experiencing high demand right now. Please wait a moment and try again."
+            : errorMessage,
+          timestamp: new Date().toISOString(),
+          isError: true,
+        },
+      ]);
+      if (!isRateLimit) toast.error(errorMessage);
     } finally {
       setSending(false);
     }
@@ -193,9 +207,23 @@ export default function AIChatPage() {
                   <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     msg.role === "user"
                       ? "bg-primary-600 text-white"
-                      : "bg-navy-50 text-navy-800"
+                      : msg.isError
+                        ? "bg-amber-50 text-amber-800 border border-amber-200"
+                        : "bg-navy-50 text-navy-800"
                   }`}>
                     <div className="whitespace-pre-wrap">{msg.content}</div>
+                    {msg.isError && (
+                      <button
+                        onClick={() => {
+                          // Remove the error message and resend the last user message
+                          setMessages((prev) => prev.slice(0, -1));
+                          setTimeout(() => sendMessage(lastSentMessage), 0);
+                        }}
+                        className="mt-2 text-xs font-medium text-amber-600 hover:text-amber-800 underline"
+                      >
+                        Try again
+                      </button>
+                    )}
                   </div>
                   {msg.role === "user" && (
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-100">

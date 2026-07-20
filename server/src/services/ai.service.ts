@@ -11,10 +11,31 @@ function getModel() {
 
 const SYSTEM_PROMPT = `You are VoyageAI, an expert AI travel assistant. You help users plan trips, discover destinations, create itineraries, and provide travel advice. You are knowledgeable about world destinations, cultures, cuisines, budgets, and travel tips. Be friendly, helpful, and provide detailed, actionable advice. Use emojis sparingly to make responses engaging.`;
 
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 1000;
+
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const message = error?.message || String(error);
+      const isRateLimit = message.includes("429") || message.includes("rate") || message.includes("RESOURCE_EXHAUSTED");
+      if (isRateLimit && attempt < MAX_RETRIES) {
+        const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
 async function generate(systemPrompt: string, userPrompt: string): Promise<string> {
   const m = getModel();
   const prompt = `${systemPrompt}\n\n${userPrompt}`;
-  const result = await m.generateContent(prompt);
+  const result = await withRetry(() => m.generateContent(prompt));
   return result.response.text() || "I'm sorry, I couldn't generate a response.";
 }
 
@@ -41,7 +62,7 @@ export const chatWithAI = async (
   });
 
   const lastMessage = messages[messages.length - 1];
-  const result = await chat.sendMessage(lastMessage.content);
+  const result = await withRetry(() => chat.sendMessage(lastMessage.content));
   return result.response.text() || "I'm sorry, I couldn't generate a response.";
 };
 

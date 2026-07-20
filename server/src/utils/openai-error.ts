@@ -12,9 +12,10 @@ export function handleAIError(error: any, res: Response): boolean {
   }
 
   if (message.includes("429") || message.includes("rate") || message.includes("RESOURCE_EXHAUSTED")) {
-    res.status(503).json({
+    res.status(429).json({
       success: false,
       message: "AI service is temporarily unavailable due to rate limits. Please try again later.",
+      retryAfter: 30,
     });
     return true;
   }
