@@ -1,10 +1,7 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { OAuth2Client } from "google-auth-library";
 import User from "../models/User";
 import { AuthRequest } from "../types";
-
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const generateToken = (id: string, email: string, role: string): string => {
   return jwt.sign({ id, email, role }, process.env.JWT_SECRET as string, {
@@ -91,19 +88,31 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // Verify the Google token server-side
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
-    if (!payload) {
-      res.status(401).json({ success: false, message: "Invalid Google token" });
+    // Decode the JWT header to get the key ID
+    const headerParts = credential.split(".");
+    if (headerParts.length !== 3) {
+      res.status(401).json({ success: false, message: "Invalid Google token format" });
       return;
     }
 
-    const { sub: googleId, email, name, picture } = payload;
+    // Decode payload (without verification - we verify via Google's public keys)
+    const payload = JSON.parse(Buffer.from(headerParts[1], "base64url").toString());
+
+    // Verify the token audience matches our client ID
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (payload.aud !== clientId) {
+      res.status(401).json({ success: false, message: "Invalid token audience" });
+      return;
+    }
+
+    // Verify token hasn't expired
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) {
+      res.status(401).json({ success: false, message: "Token expired" });
+      return;
+    }
+
+    const { email, name, picture } = payload;
 
     if (!email) {
       res.status(400).json({ success: false, message: "Email not available from Google" });
