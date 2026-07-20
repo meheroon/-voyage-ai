@@ -25,11 +25,11 @@ async function chatCompletion(messages: { role: string; content: string }[], mod
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
+    const error: any = await response.json().catch(() => ({}));
     throw new Error(error.error?.message || `Groq API error: ${response.status}`);
   }
 
-  const data = await response.json();
+  const data: any = await response.json();
   return data.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
 }
 
