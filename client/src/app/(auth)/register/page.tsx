@@ -4,9 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
-import { GoogleLogin } from "@react-oauth/google";
+import dynamic from "next/dynamic";
 import { Compass, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
+
+const GoogleLoginButton = dynamic(
+  () => import("@react-oauth/google").then((mod) => {
+    const { GoogleLogin } = mod;
+    return function GoogleLoginWrapper({ onSuccess, onError }: { onSuccess: (cr: any) => void; onError: () => void }) {
+      return <GoogleLogin onSuccess={onSuccess} onError={onError} theme="outline" size="large" width="100%" text="signup_with" shape="rectangular" />;
+    };
+  }),
+  { ssr: false }
+);
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -123,8 +133,8 @@ export default function RegisterPage() {
           </div>
 
           <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={async (credentialResponse) => {
+            <GoogleLoginButton
+              onSuccess={async (credentialResponse: any) => {
                 if (credentialResponse.credential) {
                   try {
                     await googleLogin(credentialResponse.credential);
@@ -138,11 +148,6 @@ export default function RegisterPage() {
               onError={() => {
                 toast.error("Google login failed. Please try again.");
               }}
-              theme="outline"
-              size="large"
-              width="100%"
-              text="signup_with"
-              shape="rectangular"
             />
           </div>
 

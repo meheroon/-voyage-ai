@@ -84,6 +84,7 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
     const { credential } = req.body;
 
     if (!credential) {
+      console.error("Google login: no credential provided. Body:", JSON.stringify(req.body));
       res.status(400).json({ success: false, message: "Google credential is required" });
       return;
     }
@@ -100,7 +101,8 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
 
     // Verify the token audience matches our client ID
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    if (payload.aud !== clientId) {
+    if (clientId && payload.aud !== clientId) {
+      console.error("Google token audience mismatch:", { expected: clientId, got: payload.aud });
       res.status(401).json({ success: false, message: "Invalid token audience" });
       return;
     }

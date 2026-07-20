@@ -1,12 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
-import { GoogleLogin } from "@react-oauth/google";
+import dynamic from "next/dynamic";
 import { Compass, Mail, Lock, Eye, EyeOff, LogIn } from "lucide-react";
 import toast from "react-hot-toast";
+
+const GoogleLoginButton = dynamic(
+  () => import("@react-oauth/google").then((mod) => {
+    const { GoogleLogin } = mod;
+    return function GoogleLoginWrapper({ onSuccess, onError }: { onSuccess: (cr: any) => void; onError: () => void }) {
+      return <GoogleLogin onSuccess={onSuccess} onError={onError} theme="outline" size="large" width="100%" text="signin_with" shape="rectangular" />;
+    };
+  }),
+  { ssr: false }
+);
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -107,8 +117,8 @@ export default function LoginPage() {
 
           <div className="flex flex-col gap-3">
             <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={async (credentialResponse) => {
+              <GoogleLoginButton
+                onSuccess={async (credentialResponse: any) => {
                   if (credentialResponse.credential) {
                     try {
                       await googleLogin(credentialResponse.credential);
@@ -122,11 +132,6 @@ export default function LoginPage() {
                 onError={() => {
                   toast.error("Google login failed. Please try again.");
                 }}
-                theme="outline"
-                size="large"
-                width="100%"
-                text="signin_with"
-                shape="rectangular"
               />
             </div>
             <button onClick={handleDemoLogin} disabled={loading} className="btn-primary !bg-accent-500 hover:!bg-accent-600 !py-2.5">
