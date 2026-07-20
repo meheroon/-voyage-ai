@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useAIRecommendations } from "@/hooks/use-queries";
 import ReactMarkdown from "react-markdown";
-import { Target, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
+import toast from "react-hot-toast";
+import { Target, Loader2, RefreshCw, AlertTriangle, SlidersHorizontal } from "lucide-react";
 
 export default function AIRecommendationsPage() {
   const { data, isLoading: loading, error, refetch } = useAIRecommendations();
@@ -25,8 +27,11 @@ export default function AIRecommendationsPage() {
 
       {basedOn?.preferences && (
         <div className="mb-6 card p-4">
-          <p className="text-sm text-navy-500">Based on your preferences:</p>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 mb-2">
+            <SlidersHorizontal className="h-4 w-4 text-navy-500" />
+            <p className="text-sm font-medium text-navy-500">Based on your preferences:</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
             {basedOn.preferences.interests?.map((interest: string, i: number) => (
               <span key={i} className="rounded-full bg-primary-100 px-3 py-1 text-xs font-medium text-primary-700 capitalize">
                 {interest}
@@ -55,6 +60,9 @@ export default function AIRecommendationsPage() {
             <AlertTriangle className="mb-4 h-12 w-12 text-amber-400" />
             <p className="mb-2 font-medium text-navy-700">AI Features Unavailable</p>
             <p className="max-w-md text-sm text-navy-500">{apiError}</p>
+            <button onClick={() => refetch()} className="btn-primary mt-4">
+              <RefreshCw className="h-4 w-4" /> Try Again
+            </button>
           </div>
         ) : result ? (
           <div className="prose max-w-none">
@@ -64,6 +72,9 @@ export default function AIRecommendationsPage() {
           <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-center">
             <Target className="mb-4 h-12 w-12 text-navy-200" />
             <p className="text-navy-500">Your personalized recommendations will appear here.</p>
+            <button onClick={() => refetch()} className="btn-primary mt-4">
+              Get Recommendations
+            </button>
           </div>
         )}
       </div>

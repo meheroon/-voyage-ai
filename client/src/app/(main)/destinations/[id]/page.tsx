@@ -267,16 +267,16 @@ export default function DestinationDetailPage() {
                   </div>
                 </div>
 
-                <button className="btn-primary mb-3 w-full">
+                <button onClick={() => toast.success("Booking feature coming soon!")} className="btn-primary mb-3 w-full">
                   <Calendar className="h-4 w-4" />
                   Book Now
                 </button>
                 <div className="flex gap-2">
-                  <button className="btn-outline flex-1 !py-2">
+                  <button onClick={() => toast.success("Added to saved destinations!")} className="btn-outline flex-1 !py-2">
                     <Heart className="h-4 w-4" />
                     Save
                   </button>
-                  <button className="btn-outline flex-1 !py-2">
+                  <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }} className="btn-outline flex-1 !py-2">
                     <Share2 className="h-4 w-4" />
                     Share
                   </button>

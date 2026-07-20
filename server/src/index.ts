@@ -9,6 +9,7 @@ import authRoutes from "./routes/auth.routes";
 import destinationRoutes from "./routes/destination.routes";
 import chatRoutes from "./routes/chat.routes";
 import aiRoutes from "./routes/ai.routes";
+import contactRoutes from "./routes/contact.routes";
 
 dotenv.config();
 
@@ -95,6 +96,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/destinations", destinationRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Health check
 app.get("/api/health", (_req, res) => {

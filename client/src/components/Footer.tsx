@@ -101,9 +101,9 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} VoyageAI. All rights reserved.
           </p>
           <div className="flex gap-6">
-            <Link href="/about" className="text-xs text-navy-500 hover:text-primary-400">Privacy Policy</Link>
-            <Link href="/about" className="text-xs text-navy-500 hover:text-primary-400">Terms of Service</Link>
+            <Link href="/about" className="text-xs text-navy-500 hover:text-primary-400">About Us</Link>
             <Link href="/contact" className="text-xs text-navy-500 hover:text-primary-400">Support</Link>
+            <Link href="/blog" className="text-xs text-navy-500 hover:text-primary-400">Blog</Link>
           </div>
         </div>
       </div>

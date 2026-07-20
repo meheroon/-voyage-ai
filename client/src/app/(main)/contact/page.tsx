@@ -4,22 +4,32 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Mail, Phone, MapPin, Send, MessageCircle, Clock, CheckCircle } from "lucide-react";
+import { contactAPI } from "@/lib/api";
 import toast from "react-hot-toast";
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.message) {
       toast.error("Please fill in all required fields");
       return;
     }
-    setSubmitted(true);
-    toast.success("Message sent! We'll get back to you soon.");
-    setTimeout(() => setSubmitted(false), 5000);
-    setForm({ name: "", email: "", subject: "", message: "" });
+    setLoading(true);
+    try {
+      await contactAPI.submit(form);
+      setSubmitted(true);
+      toast.success("Message sent! We'll get back to you soon.");
+      setForm({ name: "", email: "", subject: "", message: "" });
+      setTimeout(() => setSubmitted(false), 5000);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to send message");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,10 +58,10 @@ export default function ContactPage() {
                 {[
                   { icon: Mail, label: "Email", value: "hello@voyageai.com", href: "mailto:hello@voyageai.com" },
                   { icon: Phone, label: "Phone", value: "+1 (234) 567-890", href: "tel:+1234567890" },
-                  { icon: MapPin, label: "Address", value: "123 Travel Street, Adventure City, AC 12345", href: "#" },
-                  { icon: Clock, label: "Hours", value: "Mon - Fri, 9:00 AM - 6:00 PM", href: "#" },
+                  { icon: MapPin, label: "Address", value: "123 Travel Street, Adventure City, AC 12345", href: "https://maps.google.com" },
+                  { icon: Clock, label: "Hours", value: "Mon - Fri, 9:00 AM - 6:00 PM" },
                 ].map((info, i) => (
-                  <a key={i} href={info.href} className="flex items-start gap-4 group">
+                  <a key={i} href={info.href || "#"} target={info.href?.startsWith("http") ? "_blank" : undefined} rel={info.href?.startsWith("http") ? "noopener noreferrer" : undefined} className="flex items-start gap-4 group">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-colors">
                       <info.icon className="h-5 w-5" />
                     </div>
@@ -92,9 +102,9 @@ export default function ContactPage() {
                         <label className="mb-1 block text-sm font-medium text-navy-700">Message *</label>
                         <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="input-field h-36 resize-none" placeholder="Tell us more..." />
                       </div>
-                      <button type="submit" className="btn-primary">
+                      <button type="submit" disabled={loading} className="btn-primary">
                         <Send className="h-4 w-4" />
-                        Send Message
+                        {loading ? "Sending..." : "Send Message"}
                       </button>
                     </form>
                   )}

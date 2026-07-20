@@ -75,4 +75,10 @@ export const aiAPI = {
   generateDescription: (data: any) => api.post("/ai/description", data),
 };
 
+// Contact
+export const contactAPI = {
+  submit: (data: { name: string; email: string; subject?: string; message: string }) =>
+    api.post("/contact", data),
+};
+
 export default api;
