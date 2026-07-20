@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db";
 import User from "./models/User";
+import Destination from "./models/Destination";
+import destinations from "./data/destinations";
 import authRoutes from "./routes/auth.routes";
 import destinationRoutes from "./routes/destination.routes";
 import chatRoutes from "./routes/chat.routes";
@@ -38,6 +40,27 @@ const ensureDemoUsers = async () => {
       await User.create(acct);
       console.log(`Auto-seeded ${acct.role} user: ${acct.email}`);
     }
+  }
+};
+
+const ensureDestinations = async () => {
+  const count = await Destination.countDocuments();
+  if (count === 0) {
+    let adminUser = await User.findOne({ email: "admin@voyageai.com" });
+    if (!adminUser) {
+      adminUser = await User.create({
+        name: "VoyageAI Admin",
+        email: "admin@voyageai.com",
+        password: "admin123",
+        role: "admin",
+        avatar: "",
+      });
+    }
+    const seeded = destinations.map((d) => ({ ...d, createdBy: adminUser!._id }));
+    await Destination.insertMany(seeded);
+    console.log(`Auto-seeded ${destinations.length} destinations`);
+  } else {
+    console.log(`${count} destinations already exist`);
   }
 };
 
@@ -88,6 +111,7 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 const start = async () => {
   await connectDB();
   await ensureDemoUsers();
+  await ensureDestinations();
   app.listen(PORT, () => {
     console.log(`VoyageAI Server running on port ${PORT}`);
   });

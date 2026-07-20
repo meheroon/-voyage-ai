@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -8,9 +8,19 @@ import DestinationCard from "@/components/DestinationCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import { destinationAPI } from "@/lib/api";
 import { Destination } from "@/types";
-import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, Compass, Sparkles, TrendingUp, MapPin } from "lucide-react";
 
-const categories = ["all", "beach", "mountain", "city", "cultural", "adventure", "luxury", "budget"];
+const categories = [
+  { value: "all", label: "All", icon: Compass },
+  { value: "beach", label: "Beach", icon: null },
+  { value: "mountain", label: "Mountain", icon: null },
+  { value: "city", label: "City", icon: null },
+  { value: "cultural", label: "Cultural", icon: null },
+  { value: "adventure", label: "Adventure", icon: null },
+  { value: "luxury", label: "Luxury", icon: null },
+  { value: "budget", label: "Budget", icon: null },
+];
+
 const difficulties = ["", "easy", "moderate", "challenging"];
 const sortOptions = [
   { value: "-createdAt", label: "Newest First" },
@@ -35,7 +45,7 @@ function ExploreContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(parseInt(searchParams.get("page") || "1"));
 
-  const fetchDestinations = async () => {
+  const fetchDestinations = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = { page: String(page), limit: "12", sort };
@@ -53,11 +63,11 @@ function ExploreContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, category, sort, difficulty, minPrice, maxPrice, search]);
 
   useEffect(() => {
     fetchDestinations();
-  }, [page, category, sort, difficulty]);
+  }, [fetchDestinations]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,11 +91,19 @@ function ExploreContent() {
     <div className="min-h-screen bg-navy-50">
       <Navbar />
       <div className="pt-20 pb-16">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-navy-900 to-primary-900 px-4 py-12 sm:px-6 lg:px-8">
-          <div className="container-custom mx-auto">
-            <h1 className="mb-3 text-3xl font-bold text-white sm:text-4xl">Explore Destinations</h1>
-            <p className="mb-6 text-navy-300">Discover amazing places around the world, powered by AI recommendations.</p>
+        {/* Hero Header */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-navy-900 via-primary-900 to-navy-950 px-4 py-14 sm:px-6 lg:px-8">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute left-1/4 top-1/4 h-72 w-72 rounded-full bg-primary-400 blur-3xl" />
+            <div className="absolute bottom-1/4 right-1/4 h-60 w-60 rounded-full bg-accent-400 blur-3xl" />
+          </div>
+          <div className="container-custom relative mx-auto">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary-400/20 bg-primary-500/10 px-3 py-1 text-xs font-medium text-primary-300">
+              <Sparkles className="h-3.5 w-3.5" />
+              AI-Powered Discovery
+            </div>
+            <h1 className="mb-3 text-3xl font-bold text-white sm:text-4xl lg:text-5xl">Explore Destinations</h1>
+            <p className="mb-8 max-w-xl text-navy-300">Discover amazing places around the world, from tropical beaches to mountain adventures.</p>
 
             {/* Search Bar */}
             <form onSubmit={handleSearch} className="flex gap-3">
@@ -96,13 +114,13 @@ function ExploreContent() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search destinations, countries, cities..."
-                  className="w-full rounded-xl border-0 bg-white py-3 pl-12 pr-4 text-navy-900 placeholder-navy-400 shadow-sm focus:ring-2 focus:ring-primary-500"
+                  className="w-full rounded-xl border-0 bg-white py-3.5 pl-12 pr-4 text-navy-900 placeholder-navy-400 shadow-sm focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <button type="submit" className="btn-accent rounded-xl !px-6">Search</button>
-              <button type="button" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-medium text-white hover:bg-white/20">
+              <button type="button" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-medium text-white hover:bg-white/20 transition-colors">
                 <SlidersHorizontal className="h-5 w-5" />
-                Filters
+                <span className="hidden sm:inline">Filters</span>
               </button>
             </form>
           </div>
@@ -110,25 +128,25 @@ function ExploreContent() {
 
         <div className="container-custom mx-auto px-4 sm:px-6 lg:px-8">
           {/* Category Tabs */}
-          <div className="mb-6 flex gap-2 overflow-x-auto py-4">
+          <div className="mb-6 flex gap-2 overflow-x-auto py-4 scrollbar-hide">
             {categories.map((cat) => (
               <button
-                key={cat}
-                onClick={() => { setCategory(cat); setPage(1); }}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                  category === cat
-                    ? "bg-primary-600 text-white"
-                    : "bg-white text-navy-600 hover:bg-navy-100"
+                key={cat.value}
+                onClick={() => { setCategory(cat.value); setPage(1); }}
+                className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+                  category === cat.value
+                    ? "bg-primary-600 text-white shadow-md shadow-primary-600/25"
+                    : "bg-white text-navy-600 hover:bg-navy-100 border border-navy-200"
                 }`}
               >
-                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                {cat.label}
               </button>
             ))}
           </div>
 
           {/* Filters Panel */}
           {showFilters && (
-            <div className="mb-6 rounded-xl border border-navy-200 bg-white p-6">
+            <div className="mb-6 rounded-xl border border-navy-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-semibold text-navy-900">Filters</h3>
                 {hasFilters && (
@@ -182,10 +200,17 @@ function ExploreContent() {
             </div>
           )}
 
-          {/* Results */}
+          {/* Results Header */}
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-navy-500">
-              {pagination.total} destination{pagination.total !== 1 ? "s" : ""} found
+              {loading ? (
+                <span className="inline-block h-4 w-32 animate-pulse rounded bg-navy-200" />
+              ) : (
+                <>
+                  <span className="font-semibold text-navy-700">{pagination.total}</span>
+                  {" "}destination{pagination.total !== 1 ? "s" : ""} found
+                </>
+              )}
             </p>
             <select value={sort} onChange={(e) => setSort(e.target.value)} className="rounded-lg border border-navy-200 bg-white px-3 py-1.5 text-sm text-navy-700">
               {sortOptions.map((opt) => (
@@ -195,18 +220,24 @@ function ExploreContent() {
           </div>
 
           {/* Cards Grid */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {loading
               ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
               : destinations.map((d) => <DestinationCard key={d._id} destination={d} />)
             }
           </div>
 
+          {/* Empty State */}
           {!loading && destinations.length === 0 && (
             <div className="py-20 text-center">
-              <p className="text-lg font-medium text-navy-500">No destinations found</p>
-              <p className="mt-1 text-sm text-navy-400">Try adjusting your filters or search terms.</p>
-              <button onClick={clearFilters} className="btn-primary mt-4">Clear Filters</button>
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-navy-100">
+                <MapPin className="h-10 w-10 text-navy-400" />
+              </div>
+              <p className="text-lg font-medium text-navy-700">No destinations found</p>
+              <p className="mt-1 mb-6 text-sm text-navy-400">Try adjusting your filters or search terms.</p>
+              <button onClick={clearFilters} className="btn-primary">
+                Clear All Filters
+              </button>
             </div>
           )}
 
@@ -216,7 +247,7 @@ function ExploreContent() {
               <button
                 onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1}
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-navy-200 bg-white text-navy-600 hover:bg-navy-50 disabled:opacity-50"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-navy-200 bg-white text-navy-600 hover:bg-navy-50 disabled:opacity-50 transition-colors"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -224,8 +255,8 @@ function ExploreContent() {
                 <button
                   key={p}
                   onClick={() => setPage(p)}
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
-                    p === page ? "bg-primary-600 text-white" : "border border-navy-200 bg-white text-navy-600 hover:bg-navy-50"
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition-colors ${
+                    p === page ? "bg-primary-600 text-white shadow-md" : "border border-navy-200 bg-white text-navy-600 hover:bg-navy-50"
                   }`}
                 >
                   {p}
@@ -234,7 +265,7 @@ function ExploreContent() {
               <button
                 onClick={() => setPage(Math.min(pagination.pages, page + 1))}
                 disabled={page === pagination.pages}
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-navy-200 bg-white text-navy-600 hover:bg-navy-50 disabled:opacity-50"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-navy-200 bg-white text-navy-600 hover:bg-navy-50 disabled:opacity-50 transition-colors"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -254,7 +285,7 @@ export default function ExplorePage() {
         <div className="min-h-screen bg-navy-50">
           <Navbar />
           <div className="pt-20 pb-16">
-            <div className="bg-gradient-to-r from-navy-900 to-primary-900 px-4 py-12 sm:px-6 lg:px-8">
+            <div className="bg-gradient-to-r from-navy-900 to-primary-900 px-4 py-14 sm:px-6 lg:px-8">
               <div className="container-custom mx-auto">
                 <div className="mb-3 h-10 w-64 animate-pulse rounded bg-white/20" />
                 <div className="mb-6 h-5 w-96 animate-pulse rounded bg-white/10" />
