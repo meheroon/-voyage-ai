@@ -7,7 +7,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DestinationCard from "@/components/DestinationCard";
 import SkeletonCard from "@/components/SkeletonCard";
-import { destinationAPI } from "@/lib/api";
+import { useFeaturedDestinations } from "@/hooks/use-queries";
 import { Destination } from "@/types";
 import {
   Compass, Sparkles, Map, MessageCircle, BarChart3, Wand2, Shield,
@@ -37,17 +37,9 @@ const faqs = [
 ];
 
 export default function HomePage() {
-  const [featured, setFeatured] = useState<Destination[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: featured = [], isLoading: loading } = useFeaturedDestinations();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  useEffect(() => {
-    destinationAPI.getFeatured().then((res) => {
-      setFeatured(res.data.data);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -179,7 +171,7 @@ export default function HomePage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {loading
               ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-              : featured.slice(0, 4).map((d) => <DestinationCard key={d._id} destination={d} />)
+              : featured.slice(0, 4).map((d: Destination) => <DestinationCard key={d._id} destination={d} />)
             }
           </div>
           <div className="mt-8 text-center sm:hidden">

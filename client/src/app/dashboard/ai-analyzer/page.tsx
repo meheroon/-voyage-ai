@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { aiAPI } from "@/lib/api";
+import { useAnalyzeData } from "@/hooks/use-queries";
 import ReactMarkdown from "react-markdown";
 import toast from "react-hot-toast";
-import { BarChart3, Loader2, Upload, FileText } from "lucide-react";
+import { BarChart3, Loader2, FileText } from "lucide-react";
 
 const sampleData = `Travel Spending Summary:
 - January: Flights $450, Hotels $680, Food $320, Activities $150, Transport $90
@@ -25,22 +25,19 @@ Satisfaction Rating: 4.6/5`;
 export default function AIAnalyzerPage() {
   const [input, setInput] = useState("");
   const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
+  const analyzeMutation = useAnalyzeData();
 
   const handleAnalyze = async () => {
     if (!input.trim()) {
       toast.error("Please enter or paste your travel data");
       return;
     }
-    setLoading(true);
     try {
-      const res = await aiAPI.analyzeData({ data: input });
+      const res = await analyzeMutation.mutateAsync({ data: input });
       setResult(res.data.data.analysis);
       toast.success("Analysis complete!");
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Analysis failed");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -67,8 +64,8 @@ export default function AIAnalyzerPage() {
               className="input-field h-80 resize-none font-mono text-sm"
               placeholder={`Paste your travel data here...\n\nExample:\n- Trip to Paris: $2500 total, 5 days\n- Trip to Bali: $1800 total, 10 days\n- Flights this year: $3500\n- Hotel spending: $4200`}
             />
-            <button onClick={handleAnalyze} disabled={loading || !input.trim()} className="btn-primary mt-4 w-full">
-              {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Analyzing...</> : <><BarChart3 className="h-4 w-4" /> Analyze Data</>}
+            <button onClick={handleAnalyze} disabled={analyzeMutation.isPending || !input.trim()} className="btn-primary mt-4 w-full">
+              {analyzeMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Analyzing...</> : <><BarChart3 className="h-4 w-4" /> Analyze Data</>}
             </button>
           </div>
         </div>

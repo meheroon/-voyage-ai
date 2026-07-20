@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { chatAPI } from "@/lib/api";
+import {
+  useConversations, useConversation, useCreateConversation,
+  useSendMessage, useDeleteConversation,
+} from "@/hooks/use-queries";
 import { Conversation, ChatMessage } from "@/types";
 import toast from "react-hot-toast";
 import { Send, Plus, Trash2, MessageCircle, Bot, User, Loader2, X, Menu } from "lucide-react";
@@ -15,38 +18,30 @@ const suggestedPrompts = [
 ];
 
 export default function AIChatPage() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const { data: conversations = [], refetch: refetchConversations } = useConversations();
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { data: messages = [], refetch: refetchMessages } = useConversation(activeConversation ?? "");
   const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [lastSentMessage, setLastSentMessage] = useState<string>("");
   const messagesEnd = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    chatAPI.getConversations().then((res) => setConversations(res.data.data)).catch(() => {});
-  }, []);
+  const createConvMutation = useCreateConversation();
+  const sendMessageMutation = useSendMessage();
+  const deleteConvMutation = useDeleteConversation();
 
   useEffect(() => {
     messagesEnd.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const loadConversation = async (id: string) => {
+  const loadConversation = (id: string) => {
     setActiveConversation(id);
-    setMessages([]);
     setShowSidebar(false);
-    try {
-      const res = await chatAPI.getConversation(id);
-      setMessages(res.data.data.messages);
-    } catch {
-      toast.error("Failed to load conversation");
-    }
   };
 
   const startNewConversation = async () => {
     try {
-      const res = await chatAPI.createConversation();
+      const res = await createConvMutation.mutateAsync(undefined);
       const newConv = {
         _id: res.data.data._id,
         title: "New Conversation",
@@ -55,9 +50,8 @@ export default function AIChatPage() {
         createdAt: res.data.data.createdAt,
         updatedAt: res.data.data.updatedAt,
       };
-      setConversations([newConv, ...conversations]);
       setActiveConversation(newConv._id);
-      setMessages([]);
+      refetchConversations();
     } catch {
       toast.error("Failed to create conversation");
     }
@@ -65,52 +59,27 @@ export default function AIChatPage() {
 
   const sendMessage = async (text?: string) => {
     const messageText = text || input.trim();
-    if (!messageText || !activeConversation || sending) return;
+    if (!messageText || !activeConversation || sendMessageMutation.isPending) return;
 
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: messageText, timestamp: new Date().toISOString() }]);
     setLastSentMessage(messageText);
-    setSending(true);
 
     try {
-      const res = await chatAPI.sendMessage({ conversationId: activeConversation, message: messageText });
-      setMessages((prev) => [...prev, res.data.data.message]);
-
-      // Update conversation list
-      setConversations((prev) =>
-        prev.map((c) =>
-          c._id === activeConversation
-            ? { ...c, lastMessage: messageText, updatedAt: new Date().toISOString() }
-            : c
-        )
-      );
+      await sendMessageMutation.mutateAsync({ conversationId: activeConversation, message: messageText });
+      refetchMessages();
+      refetchConversations();
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || "Failed to send message";
       const isRateLimit = errorMessage.includes("rate") || errorMessage.includes("temporarily") || errorMessage.includes("busy");
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: isRateLimit
-            ? "I'm experiencing high demand right now. Please wait a moment and try again."
-            : errorMessage,
-          timestamp: new Date().toISOString(),
-          isError: true,
-        },
-      ]);
       if (!isRateLimit) toast.error(errorMessage);
-    } finally {
-      setSending(false);
     }
   };
 
   const deleteConversation = async (id: string) => {
     try {
-      await chatAPI.deleteConversation(id);
-      setConversations(conversations.filter((c) => c._id !== id));
+      await deleteConvMutation.mutateAsync(id);
       if (activeConversation === id) {
         setActiveConversation(null);
-        setMessages([]);
       }
       toast.success("Conversation deleted");
     } catch {
@@ -134,7 +103,7 @@ export default function AIChatPage() {
             New Chat
           </button>
           <div className="flex-1 overflow-y-auto px-3">
-            {conversations.map((conv) => (
+            {conversations.map((conv: Conversation) => (
               <div
                 key={conv._id}
                 className={`group mb-1 flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors ${
@@ -197,7 +166,7 @@ export default function AIChatPage() {
             </div>
           ) : (
             <div className="mx-auto max-w-3xl space-y-4">
-              {messages.map((msg, i) => (
+              {messages.map((msg: ChatMessage, i: number) => (
                 <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
                   {msg.role === "assistant" && (
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-100">
@@ -214,11 +183,7 @@ export default function AIChatPage() {
                     <div className="whitespace-pre-wrap">{msg.content}</div>
                     {msg.isError && (
                       <button
-                        onClick={() => {
-                          // Remove the error message and resend the last user message
-                          setMessages((prev) => prev.slice(0, -1));
-                          setTimeout(() => sendMessage(lastSentMessage), 0);
-                        }}
+                        onClick={() => sendMessage(lastSentMessage)}
                         className="mt-2 text-xs font-medium text-amber-600 hover:text-amber-800 underline"
                       >
                         Try again
@@ -232,7 +197,7 @@ export default function AIChatPage() {
                   )}
                 </div>
               ))}
-              {sending && (
+              {sendMessageMutation.isPending && (
                 <div className="flex gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-100">
                     <Bot className="h-4 w-4 text-primary-600" />
@@ -260,9 +225,9 @@ export default function AIChatPage() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about destinations, plan a trip, get travel tips..."
                 className="input-field flex-1"
-                disabled={sending}
+                disabled={sendMessageMutation.isPending}
               />
-              <button type="submit" disabled={!input.trim() || sending} className="btn-primary">
+              <button type="submit" disabled={!input.trim() || sendMessageMutation.isPending} className="btn-primary">
                 <Send className="h-4 w-4" />
               </button>
             </form>

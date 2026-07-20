@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { aiAPI } from "@/lib/api";
+import { useGenerateItinerary } from "@/hooks/use-queries";
 import ReactMarkdown from "react-markdown";
 import toast from "react-hot-toast";
 import { Wand2, Calendar, DollarSign, Users, MapPin, Loader2, Download } from "lucide-react";
@@ -16,7 +16,7 @@ export default function AIPlannerPage() {
     preferences: "",
   });
   const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
+  const generateMutation = useGenerateItinerary();
 
   const update = (field: string, value: string) => setForm({ ...form, [field]: value });
 
@@ -26,9 +26,8 @@ export default function AIPlannerPage() {
       toast.error("Please fill in destination and dates");
       return;
     }
-    setLoading(true);
     try {
-      const res = await aiAPI.createItinerary({
+      const res = await generateMutation.mutateAsync({
         destination: form.destination,
         startDate: form.startDate,
         endDate: form.endDate,
@@ -40,8 +39,6 @@ export default function AIPlannerPage() {
       toast.success("Itinerary generated!");
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Generation failed");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -109,8 +106,8 @@ export default function AIPlannerPage() {
               <label className="mb-1 text-sm font-medium text-navy-700">Preferences (comma separated)</label>
               <input value={form.preferences} onChange={(e) => update("preferences", e.target.value)} className="input-field" placeholder="food, temples, hiking" />
             </div>
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</> : <><Wand2 className="h-4 w-4" /> Generate Itinerary</>}
+            <button type="submit" disabled={generateMutation.isPending} className="btn-primary w-full">
+              {generateMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</> : <><Wand2 className="h-4 w-4" /> Generate Itinerary</>}
             </button>
           </form>
         </div>

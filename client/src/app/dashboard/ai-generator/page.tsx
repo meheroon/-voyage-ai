@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { aiAPI } from "@/lib/api";
+import { useGenerateContent } from "@/hooks/use-queries";
 import ReactMarkdown from "react-markdown";
 import toast from "react-hot-toast";
 import { Sparkles, Loader2, Download, RefreshCw } from "lucide-react";
@@ -32,8 +32,8 @@ const lengths = [
 export default function AIGeneratorPage() {
   const [form, setForm] = useState({ type: "blog_post", topic: "", length: "medium", tone: "informative" });
   const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<{ topic: string; type: string; content: string }[]>([]);
+  const generateMutation = useGenerateContent();
 
   const update = (field: string, value: string) => setForm({ ...form, [field]: value });
 
@@ -42,17 +42,14 @@ export default function AIGeneratorPage() {
       toast.error("Please enter a topic");
       return;
     }
-    setLoading(true);
     if (!retry) setResult("");
     try {
-      const res = await aiAPI.generateContent(form);
+      const res = await generateMutation.mutateAsync(form);
       setResult(res.data.data.content);
       setHistory([{ topic: form.topic, type: form.type, content: res.data.data.content }, ...history]);
       toast.success("Content generated!");
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Generation failed");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -111,8 +108,8 @@ export default function AIGeneratorPage() {
                 </select>
               </div>
             </div>
-            <button onClick={() => handleGenerate()} disabled={loading} className="btn-primary w-full">
-              {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</> : <><Sparkles className="h-4 w-4" /> Generate Content</>}
+            <button onClick={() => handleGenerate()} disabled={generateMutation.isPending} className="btn-primary w-full">
+              {generateMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</> : <><Sparkles className="h-4 w-4" /> Generate Content</>}
             </button>
           </div>
         </div>

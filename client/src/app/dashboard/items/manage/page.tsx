@@ -1,43 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { destinationAPI } from "@/lib/api";
+import { useMyDestinations, useDeleteDestination } from "@/hooks/use-queries";
 import { Destination } from "@/types";
 import toast from "react-hot-toast";
 import { Plus, Eye, Trash2, MapPin, Star, DollarSign, ExternalLink } from "lucide-react";
 
 export default function ManageItemsPage() {
-  const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchDestinations();
-  }, []);
-
-  const fetchDestinations = async () => {
-    try {
-      const res = await destinationAPI.getMy();
-      setDestinations(res.data.data);
-    } catch {
-      toast.error("Failed to load destinations");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: destinations = [], isLoading: loading } = useMyDestinations();
+  const deleteMutation = useDeleteDestination();
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this destination?")) return;
-    setDeleting(id);
     try {
-      await destinationAPI.delete(id);
-      setDestinations(destinations.filter((d) => d._id !== id));
+      await deleteMutation.mutateAsync(id);
       toast.success("Destination deleted");
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Delete failed");
-    } finally {
-      setDeleting(null);
     }
   };
 
@@ -79,7 +58,7 @@ export default function ManageItemsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {destinations.map((dest) => (
+          {destinations.map((dest: Destination) => (
             <div key={dest._id} className="card flex items-center gap-4 p-4 transition-all hover:shadow-md">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
                 <MapPin className="h-6 w-6" />
@@ -120,7 +99,7 @@ export default function ManageItemsPage() {
                 </a>
                 <button
                   onClick={() => handleDelete(dest._id)}
-                  disabled={deleting === dest._id}
+                  disabled={deleteMutation.isPending && deleteMutation.variables === dest._id}
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-navy-200 text-navy-600 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                   title="Delete"
                 >

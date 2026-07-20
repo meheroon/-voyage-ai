@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DestinationCard from "@/components/DestinationCard";
-import { destinationAPI } from "@/lib/api";
-import { Destination, Review } from "@/types";
+import { useDestination, useAddReview } from "@/hooks/use-queries";
 import { useAuth } from "@/providers/AuthProvider";
+import { Review, Destination } from "@/types";
 import toast from "react-hot-toast";
 import {
   MapPin, Clock, Star, DollarSign, Check, Calendar, Users,
@@ -19,44 +19,32 @@ import {
 export default function DestinationDetailPage() {
   const params = useParams();
   const { user } = useAuth();
-  const [destination, setDestination] = useState<Destination | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [related, setRelated] = useState<Destination[]>([]);
-  const [loading, setLoading] = useState(true);
+  const id = params.id as string;
+  const { data, isLoading: loading } = useDestination(id);
+  const addReviewMutation = useAddReview();
   const [selectedImage, setSelectedImage] = useState(0);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "", pros: "", cons: "" });
-  const [submittingReview, setSubmittingReview] = useState(false);
 
-  useEffect(() => {
-    if (params.id) {
-      destinationAPI.getById(params.id as string).then((res) => {
-        setDestination(res.data.data.destination);
-        setReviews(res.data.data.reviews);
-        setRelated(res.data.data.relatedDestinations);
-        setLoading(false);
-      }).catch(() => setLoading(false));
-    }
-  }, [params.id]);
+  const { destination, reviews, relatedDestinations: related } = data ?? {};
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) { toast.error("Please login to leave a review"); return; }
     if (!reviewForm.comment.trim()) { toast.error("Please write a review"); return; }
-    setSubmittingReview(true);
     try {
-      const res = await destinationAPI.addReview(params.id as string, {
-        rating: reviewForm.rating,
-        comment: reviewForm.comment,
-        pros: reviewForm.pros ? reviewForm.pros.split(",").map((s) => s.trim()) : [],
-        cons: reviewForm.cons ? reviewForm.cons.split(",").map((s) => s.trim()) : [],
+      await addReviewMutation.mutateAsync({
+        id,
+        data: {
+          rating: reviewForm.rating,
+          comment: reviewForm.comment,
+          pros: reviewForm.pros ? reviewForm.pros.split(",").map((s) => s.trim()) : [],
+          cons: reviewForm.cons ? reviewForm.cons.split(",").map((s) => s.trim()) : [],
+        },
       });
-      setReviews([res.data.data, ...reviews]);
       setReviewForm({ rating: 5, comment: "", pros: "", cons: "" });
       toast.success("Review submitted!");
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to submit review");
-    } finally {
-      setSubmittingReview(false);
     }
   };
 
@@ -110,7 +98,7 @@ export default function DestinationDetailPage() {
               />
             </div>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
-              {destination.images.slice(1, 3).map((img, i) => (
+              {(destination?.images ?? []).slice(1, 3).map((img: string, i: number) => (
                 <div
                   key={i}
                   onClick={() => setSelectedImage(i + 1)}
@@ -162,7 +150,7 @@ export default function DestinationDetailPage() {
               <div className="card p-6">
                 <h2 className="mb-4 text-xl font-bold text-navy-900">Highlights</h2>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {destination.highlights.map((h, i) => (
+                  {destination.highlights.map((h: string, i: number) => (
                     <div key={i} className="flex items-center gap-2 text-navy-600">
                       <Check className="h-4 w-4 text-primary-500" />
                       {h}
@@ -175,7 +163,7 @@ export default function DestinationDetailPage() {
               <div className="card p-6">
                 <h2 className="mb-4 text-xl font-bold text-navy-900">What&apos;s Included</h2>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {destination.included.map((item, i) => (
+                  {destination.included.map((item: string, i: number) => (
                     <div key={i} className="flex items-center gap-2 text-navy-600">
                       <Shield className="h-4 w-4 text-emerald-500" />
                       {item}
@@ -186,12 +174,12 @@ export default function DestinationDetailPage() {
 
               {/* Reviews */}
               <div className="card p-6">
-                <h2 className="mb-4 text-xl font-bold text-navy-900">Reviews ({reviews.length})</h2>
-                {reviews.length === 0 ? (
+                <h2 className="mb-4 text-xl font-bold text-navy-900">Reviews ({(reviews ?? []).length})</h2>
+                {(reviews ?? []).length === 0 ? (
                   <p className="text-navy-500">No reviews yet. Be the first to review!</p>
                 ) : (
                   <div className="space-y-4">
-                    {reviews.map((review) => (
+                    {(reviews ?? []).map((review: Review) => (
                       <div key={review._id} className="border-b border-navy-100 pb-4 last:border-0">
                         <div className="mb-2 flex items-center gap-3">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700">
@@ -244,8 +232,8 @@ export default function DestinationDetailPage() {
                       placeholder="Cons (comma separated)"
                       className="input-field mb-3"
                     />
-                    <button type="submit" disabled={submittingReview} className="btn-primary">
-                      {submittingReview ? "Submitting..." : "Submit Review"}
+                    <button type="submit" disabled={addReviewMutation.isPending} className="btn-primary">
+                      {addReviewMutation.isPending ? "Submitting..." : "Submit Review"}
                     </button>
                   </form>
                 )}
@@ -278,7 +266,7 @@ export default function DestinationDetailPage() {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-navy-500">Best Seasons</span>
-                    <span className="font-medium capitalize text-navy-900">{destination.season.join(", ")}</span>
+                    <span className="font-medium capitalize text-navy-900">{(destination.season ?? []).join(", ")}</span>
                   </div>
                 </div>
 
@@ -302,7 +290,7 @@ export default function DestinationDetailPage() {
               <div className="card p-6">
                 <h3 className="mb-3 font-bold text-navy-900">Best For</h3>
                 <div className="flex flex-wrap gap-2">
-                  {destination.bestFor.map((tag, i) => (
+                  {destination.bestFor.map((tag: string, i: number) => (
                     <span key={i} className="rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 capitalize">
                       {tag}
                     </span>
@@ -313,11 +301,11 @@ export default function DestinationDetailPage() {
           </div>
 
           {/* Related Destinations */}
-          {related.length > 0 && (
+          {(related ?? []).length > 0 && (
             <div className="mt-12">
               <h2 className="mb-6 text-2xl font-bold text-navy-900">Related Destinations</h2>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {related.map((d) => <DestinationCard key={d._id} destination={d} />)}
+                {(related ?? []).map((d: Destination) => <DestinationCard key={d._id} destination={d} />)}
               </div>
             </div>
           )}

@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { destinationAPI, aiAPI } from "@/lib/api";
+import { useCreateDestination, useGenerateDescription } from "@/hooks/use-queries";
 import toast from "react-hot-toast";
 import { Plus, Sparkles, MapPin, DollarSign, Clock, Tag, Image } from "lucide-react";
 
 export default function AddDestinationPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
+  const createMutation = useCreateDestination();
+  const aiDescMutation = useGenerateDescription();
   const [form, setForm] = useState({
     title: "",
     shortDescription: "",
@@ -35,9 +35,8 @@ export default function AddDestinationPage() {
       toast.error("Please enter a title and country first");
       return;
     }
-    setAiLoading(true);
     try {
-      const res = await aiAPI.generateDescription({
+      const res = await aiDescMutation.mutateAsync({
         title: form.title,
         location: `${form.city || form.country}, ${form.country}`,
         category: form.category,
@@ -51,8 +50,6 @@ export default function AddDestinationPage() {
       toast.success("AI generated the description!");
     } catch {
       toast.error("AI generation failed. Please write manually.");
-    } finally {
-      setAiLoading(false);
     }
   };
 
@@ -62,9 +59,8 @@ export default function AddDestinationPage() {
       toast.error("Please fill in all required fields");
       return;
     }
-    setLoading(true);
     try {
-      await destinationAPI.create({
+      await createMutation.mutateAsync({
         title: form.title,
         shortDescription: form.shortDescription || form.description.substring(0, 150),
         description: form.description,
@@ -83,8 +79,6 @@ export default function AddDestinationPage() {
       router.push("/dashboard/items/manage");
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to add destination");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -151,9 +145,9 @@ export default function AddDestinationPage() {
         <div className="card p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-navy-900">Description</h2>
-            <button type="button" onClick={handleAIGenerate} disabled={aiLoading} className="flex items-center gap-2 rounded-lg bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-100 disabled:opacity-50">
+            <button type="button" onClick={handleAIGenerate} disabled={aiDescMutation.isPending} className="flex items-center gap-2 rounded-lg bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-100 disabled:opacity-50">
               <Sparkles className="h-4 w-4" />
-              {aiLoading ? "Generating..." : "AI Generate"}
+              {aiDescMutation.isPending ? "Generating..." : "AI Generate"}
             </button>
           </div>
           <div className="mb-4">
@@ -193,9 +187,9 @@ export default function AddDestinationPage() {
         </div>
 
         <div className="flex gap-3">
-          <button type="submit" disabled={loading} className="btn-primary !px-8">
+          <button type="submit" disabled={createMutation.isPending} className="btn-primary !px-8">
             <Plus className="h-4 w-4" />
-            {loading ? "Adding..." : "Add Destination"}
+            {createMutation.isPending ? "Adding..." : "Add Destination"}
           </button>
           <button type="button" onClick={() => router.back()} className="btn-outline">Cancel</button>
         </div>

@@ -1,37 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { aiAPI } from "@/lib/api";
+import { useAIRecommendations } from "@/hooks/use-queries";
 import ReactMarkdown from "react-markdown";
-import toast from "react-hot-toast";
 import { Target, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 
 export default function AIRecommendationsPage() {
-  const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [basedOn, setBasedOn] = useState<any>(null);
-  const [apiError, setApiError] = useState("");
-
-  const fetchRecommendations = async () => {
-    setLoading(true);
-    setApiError("");
-    try {
-      const res = await aiAPI.getRecommendations();
-      setResult(res.data.data.recommendations);
-      setBasedOn(res.data.data.basedOn);
-      toast.success("Recommendations generated!");
-    } catch (err: any) {
-      const msg = err.response?.data?.message || "Failed to get recommendations";
-      setApiError(msg);
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchRecommendations();
-  }, []);
+  const { data, isLoading: loading, error, refetch } = useAIRecommendations();
+  const result = data?.recommendations ?? "";
+  const basedOn = data?.basedOn ?? null;
+  const apiError = error ? (error as any)?.response?.data?.message || "Failed to get recommendations" : "";
 
   return (
     <div>
@@ -40,7 +17,7 @@ export default function AIRecommendationsPage() {
           <h1 className="text-2xl font-bold text-navy-900">AI Recommendations</h1>
           <p className="text-navy-500">Personalized destination suggestions based on your preferences.</p>
         </div>
-        <button onClick={fetchRecommendations} disabled={loading} className="btn-primary">
+        <button onClick={() => refetch()} disabled={loading} className="btn-primary">
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           {loading ? "Loading..." : "Refresh"}
         </button>

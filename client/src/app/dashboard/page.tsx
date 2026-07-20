@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/providers/AuthProvider";
-import { destinationAPI, chatAPI } from "@/lib/api";
+import { useMyDestinations, useConversations } from "@/hooks/use-queries";
 import {
   Plus, Map, MessageCircle, Wand2, TrendingUp, Star, Globe,
   ArrowRight, Sparkles,
@@ -14,23 +13,10 @@ const COLORS = ["#0ea5e9", "#f97316", "#10b981", "#8b5cf6", "#ec4899"];
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ destinations: 0, conversations: 0 });
-  const [recentDestinations, setRecentDestinations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: myDestinations = [], isLoading: destLoading } = useMyDestinations();
+  const { data: conversations = [] } = useConversations();
 
-  useEffect(() => {
-    Promise.all([
-      destinationAPI.getMy().catch(() => ({ data: { data: [] } })),
-      chatAPI.getConversations().catch(() => ({ data: { data: [] } })),
-    ]).then(([destRes, chatRes]) => {
-      setStats({
-        destinations: destRes.data.data.length,
-        conversations: chatRes.data.data.length,
-      });
-      setRecentDestinations(destRes.data.data.slice(0, 5));
-      setLoading(false);
-    });
-  }, []);
+  const recentDestinations = myDestinations.slice(0, 5);
 
   const categoryData = [
     { name: "Beach", value: 35 },
@@ -61,8 +47,8 @@ export default function DashboardPage() {
       {/* Stats Cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "My Destinations", value: stats.destinations, icon: Map, color: "bg-primary-50 text-primary-600" },
-          { label: "AI Conversations", value: stats.conversations, icon: MessageCircle, color: "bg-accent-50 text-accent-600" },
+          { label: "My Destinations", value: myDestinations.length, icon: Map, color: "bg-primary-50 text-primary-600" },
+          { label: "AI Conversations", value: conversations.length, icon: MessageCircle, color: "bg-accent-50 text-accent-600" },
           { label: "Total Reviews", value: 0, icon: Star, color: "bg-amber-50 text-amber-600" },
           { label: "Countries Visited", value: 0, icon: Globe, color: "bg-emerald-50 text-emerald-600" },
         ].map((stat, i) => (
@@ -135,7 +121,7 @@ export default function DashboardPage() {
             View All <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        {loading ? (
+        {destLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex animate-pulse items-center gap-4 rounded-lg p-3">

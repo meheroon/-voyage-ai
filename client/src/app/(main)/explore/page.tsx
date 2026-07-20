@@ -1,14 +1,14 @@
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DestinationCard from "@/components/DestinationCard";
 import SkeletonCard from "@/components/SkeletonCard";
-import { destinationAPI } from "@/lib/api";
+import { useDestinations } from "@/hooks/use-queries";
 import { Destination } from "@/types";
-import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, Compass, Sparkles, TrendingUp, MapPin } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, Compass, Sparkles, MapPin } from "lucide-react";
 
 const categories = [
   { value: "all", label: "All", icon: Compass },
@@ -32,10 +32,6 @@ const sortOptions = [
 
 function ExploreContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [category, setCategory] = useState(searchParams.get("category") || "all");
   const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
@@ -44,35 +40,26 @@ function ExploreContent() {
   const [sort, setSort] = useState(searchParams.get("sort") || "-createdAt");
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(parseInt(searchParams.get("page") || "1"));
+  const [searchInput, setSearchInput] = useState(search);
 
-  const fetchDestinations = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params: Record<string, string> = { page: String(page), limit: "12", sort };
-      if (category && category !== "all") params.category = category;
-      if (minPrice) params.minPrice = minPrice;
-      if (maxPrice) params.maxPrice = maxPrice;
-      if (difficulty) params.difficulty = difficulty;
-      if (search) params.search = search;
-
-      const res = await destinationAPI.getAll(params);
-      setDestinations(res.data.data);
-      setPagination(res.data.pagination);
-    } catch {
-      setDestinations([]);
-    } finally {
-      setLoading(false);
-    }
+  const params = useMemo(() => {
+    const p: Record<string, string> = { page: String(page), limit: "12", sort };
+    if (category && category !== "all") p.category = category;
+    if (minPrice) p.minPrice = minPrice;
+    if (maxPrice) p.maxPrice = maxPrice;
+    if (difficulty) p.difficulty = difficulty;
+    if (search) p.search = search;
+    return p;
   }, [page, category, sort, difficulty, minPrice, maxPrice, search]);
 
-  useEffect(() => {
-    fetchDestinations();
-  }, [fetchDestinations]);
+  const { data, isLoading: loading } = useDestinations(params);
+  const destinations = data?.data ?? [];
+  const pagination = data?.pagination ?? { page: 1, pages: 1, total: 0 };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setSearch(searchInput);
     setPage(1);
-    fetchDestinations();
   };
 
   const clearFilters = () => {
@@ -111,8 +98,8 @@ function ExploreContent() {
                 <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-navy-400" />
                 <input
                   type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search destinations, countries, cities..."
                   className="w-full rounded-xl border-0 bg-white py-3.5 pl-12 pr-4 text-navy-900 placeholder-navy-400 shadow-sm focus:ring-2 focus:ring-primary-500"
                 />
@@ -194,7 +181,7 @@ function ExploreContent() {
                   </select>
                 </div>
               </div>
-              <button onClick={() => { setPage(1); fetchDestinations(); }} className="btn-primary mt-4">
+              <button onClick={() => setPage(1)} className="btn-primary mt-4">
                 Apply Filters
               </button>
             </div>
@@ -223,7 +210,7 @@ function ExploreContent() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {loading
               ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
-              : destinations.map((d) => <DestinationCard key={d._id} destination={d} />)
+              : destinations.map((d: Destination) => <DestinationCard key={d._id} destination={d} />)
             }
           </div>
 
