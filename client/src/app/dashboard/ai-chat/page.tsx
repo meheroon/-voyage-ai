@@ -86,7 +86,7 @@ export default function AIChatPage() {
       );
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || "Failed to send message";
-      const isRateLimit = errorMessage.includes("rate") || errorMessage.includes("temporarily unavailable");
+      const isRateLimit = errorMessage.includes("rate") || errorMessage.includes("temporarily") || errorMessage.includes("busy");
       setMessages((prev) => [
         ...prev,
         {

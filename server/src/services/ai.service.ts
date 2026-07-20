@@ -1,12 +1,36 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-function getModel() {
-  const apiKey = process.env.GEMINI_API_KEY;
+function getApiKey(): string {
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    throw new Error("Gemini API key is not configured. Set the GEMINI_API_KEY environment variable.");
+    throw new Error("Groq API key is not configured. Set the GROQ_API_KEY environment variable.");
   }
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  return apiKey;
+}
+
+async function chatCompletion(messages: { role: string; content: string }[], model = "llama-3.3-70b-versatile"): Promise<string> {
+  const apiKey = getApiKey();
+  const response = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature: 0.7,
+      max_tokens: 2048,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error?.message || `Groq API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
 }
 
 const SYSTEM_PROMPT = `You are VoyageAI, an expert AI travel assistant. You help users plan trips, discover destinations, create itineraries, and provide travel advice. You are knowledgeable about world destinations, cultures, cuisines, budgets, and travel tips. Be friendly, helpful, and provide detailed, actionable advice. Use emojis sparingly to make responses engaging.`;
@@ -33,10 +57,10 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 async function generate(systemPrompt: string, userPrompt: string): Promise<string> {
-  const m = getModel();
-  const prompt = `${systemPrompt}\n\n${userPrompt}`;
-  const result = await withRetry(() => m.generateContent(prompt));
-  return result.response.text() || "I'm sorry, I couldn't generate a response.";
+  return withRetry(() => chatCompletion([
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt },
+  ]));
 }
 
 export const chatWithAI = async (
@@ -47,23 +71,15 @@ export const chatWithAI = async (
     ? `${SYSTEM_PROMPT}\n\nAdditional context: ${context}`
     : SYSTEM_PROMPT;
 
-  const m = getModel();
-  const history = messages.slice(0, -1).map((msg) => ({
-    role: msg.role === "assistant" ? ("model" as const) : ("user" as const),
-    parts: [{ text: msg.content }],
-  }));
+  const chatMessages = [
+    { role: "system", content: systemMessage },
+    ...messages.map((msg) => ({
+      role: msg.role === "assistant" ? "assistant" as const : "user" as const,
+      content: msg.content,
+    })),
+  ];
 
-  const chat = m.startChat({
-    history: [
-      { role: "user", parts: [{ text: systemMessage }] },
-      { role: "model", parts: [{ text: "Understood. I'm VoyageAI, ready to help with travel planning." }] },
-      ...history,
-    ],
-  });
-
-  const lastMessage = messages[messages.length - 1];
-  const result = await withRetry(() => chat.sendMessage(lastMessage.content));
-  return result.response.text() || "I'm sorry, I couldn't generate a response.";
+  return withRetry(() => chatCompletion(chatMessages));
 };
 
 export const generateItinerary = async (
