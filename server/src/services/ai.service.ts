@@ -1,27 +1,20 @@
-import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-let model: GenerativeModel;
-
-function getModel(): GenerativeModel {
+function getModel() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("Gemini API key is not configured. Set the GEMINI_API_KEY environment variable.");
   }
-  if (!model) {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-  }
-  return model;
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 }
 
 const SYSTEM_PROMPT = `You are VoyageAI, an expert AI travel assistant. You help users plan trips, discover destinations, create itineraries, and provide travel advice. You are knowledgeable about world destinations, cultures, cuisines, budgets, and travel tips. Be friendly, helpful, and provide detailed, actionable advice. Use emojis sparingly to make responses engaging.`;
 
 async function generate(systemPrompt: string, userPrompt: string): Promise<string> {
   const m = getModel();
-  const result = await m.generateContent([
-    { text: systemPrompt },
-    { text: userPrompt },
-  });
+  const prompt = `${systemPrompt}\n\n${userPrompt}`;
+  const result = await m.generateContent(prompt);
   return result.response.text() || "I'm sorry, I couldn't generate a response.";
 }
 
@@ -34,12 +27,19 @@ export const chatWithAI = async (
     : SYSTEM_PROMPT;
 
   const m = getModel();
-  const history = messages.map((m) => ({
-    role: m.role === "assistant" ? "model" as const : "user" as const,
-    parts: [{ text: m.content }],
+  const history = messages.slice(0, -1).map((msg) => ({
+    role: msg.role === "assistant" ? ("model" as const) : ("user" as const),
+    parts: [{ text: msg.content }],
   }));
 
-  const chat = m.startChat({ history: [{ role: "user", parts: [{ text: systemMessage }] }, { role: "model", parts: [{ text: "Understood. I'm VoyageAI, ready to help with travel planning." }] }, ...history] });
+  const chat = m.startChat({
+    history: [
+      { role: "user", parts: [{ text: systemMessage }] },
+      { role: "model", parts: [{ text: "Understood. I'm VoyageAI, ready to help with travel planning." }] },
+      ...history,
+    ],
+  });
+
   const lastMessage = messages[messages.length - 1];
   const result = await chat.sendMessage(lastMessage.content);
   return result.response.text() || "I'm sorry, I couldn't generate a response.";
