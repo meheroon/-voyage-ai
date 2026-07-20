@@ -18,16 +18,16 @@ export default function Footer() {
               AI-powered travel planning that transforms your dream destinations into perfectly crafted itineraries.
             </p>
             <div className="mt-6 flex gap-3">
-              <a href="#" className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-800 text-navy-400 transition-colors hover:bg-primary-600 hover:text-white">
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-800 text-navy-400 transition-colors hover:bg-primary-600 hover:text-white">
                 <Facebook className="h-4 w-4" />
               </a>
-              <a href="#" className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-800 text-navy-400 transition-colors hover:bg-primary-600 hover:text-white">
+              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-800 text-navy-400 transition-colors hover:bg-primary-600 hover:text-white">
                 <Twitter className="h-4 w-4" />
               </a>
-              <a href="#" className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-800 text-navy-400 transition-colors hover:bg-primary-600 hover:text-white">
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-800 text-navy-400 transition-colors hover:bg-primary-600 hover:text-white">
                 <Instagram className="h-4 w-4" />
               </a>
-              <a href="#" className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-800 text-navy-400 transition-colors hover:bg-primary-600 hover:text-white">
+              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-800 text-navy-400 transition-colors hover:bg-primary-600 hover:text-white">
                 <Youtube className="h-4 w-4" />
               </a>
             </div>
